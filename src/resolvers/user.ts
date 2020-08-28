@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Ctx, Arg, InputType, Field, ObjectType } from "type-graphql";
+import { Resolver, Mutation, Ctx, Arg, InputType, Field, ObjectType, Query } from "type-graphql";
 import { User } from "../entities/User";
 import * as argon2 from "argon2";
 
@@ -32,10 +32,20 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+	@Query(() => User, { nullable: true })
+	async me(@Ctx() { req, db }: AppContext): Promise<User | null> {
+		if (!req.session.userId) {
+			return null;
+		}
+
+		const user = await db.findOne(User, { id: req.session.userId });
+		return user;
+	}
+
 	@Mutation(() => UserResponse)
 	async register(
 		@Arg("registerInput") registerInput: AuthInput,
-		@Ctx() { db }: AppContext,
+		@Ctx() { db, req }: AppContext,
 	): Promise<UserResponse> {
 		if (registerInput.username.length <= 2) {
 			return {
@@ -65,13 +75,16 @@ export class UserResolver {
 			}
 		}
 
+		// Auto log user in
+		req.session.userId = user.id;
+
 		return { user };
 	}
 
 	@Mutation(() => UserResponse)
 	async login(
 		@Arg("loginInput") loginInput: AuthInput,
-		@Ctx() { db }: AppContext,
+		@Ctx() { db, req }: AppContext,
 	): Promise<UserResponse> {
 		const user = await db.findOne(User, { username: loginInput.username });
 		if (!user) {
@@ -86,6 +99,8 @@ export class UserResolver {
 				errors: [{ field: "password", message: "Invalid credentials" }],
 			};
 		}
+
+		req.session.userId = user.id;
 
 		return { user };
 	}
