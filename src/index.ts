@@ -3,6 +3,7 @@ import express from "express";
 import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
+import cors from "cors";
 
 import { MikroORM } from "@mikro-orm/core";
 import { ApolloServer } from "apollo-server-express";
@@ -27,6 +28,8 @@ const bootstrap = async () => {
 
 	const RedisStore = connectRedis(session);
 	const redisClient = redis.createClient();
+
+	app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 
 	app.use(
 		session({
@@ -55,7 +58,7 @@ const bootstrap = async () => {
 		context: ({ req, res }) => ({ db: orm.em, req, res }),
 	});
 
-	apolloServer.applyMiddleware({ app });
+	apolloServer.applyMiddleware({ app, cors: false });
 
 	app.listen(4321, () => {
 		console.log(`🚀 LiReddit has launched`);
