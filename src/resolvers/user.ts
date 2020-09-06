@@ -1,6 +1,7 @@
 import { Resolver, Mutation, Ctx, Arg, InputType, Field, ObjectType, Query } from "type-graphql";
 import { User } from "../entities/User";
 import * as argon2 from "argon2";
+import { EntityManager } from "@mikro-orm/postgresql";
 
 // Typings
 import { AppContext } from "../typings";
@@ -59,13 +60,21 @@ export class UserResolver {
 		}
 
 		const hashedPassword = await argon2.hash(registerInput.password);
-		const user = db.create(User, {
-			username: registerInput.username,
-			password: hashedPassword,
-		});
+		let user;
 
 		try {
-			await db.persistAndFlush(user);
+			const result = await (db as EntityManager)
+				.createQueryBuilder(User)
+				.getKnexQuery()
+				.insert({
+					username: registerInput.username,
+					password: hashedPassword,
+					created_at: new Date(),
+					updated_at: new Date(),
+				})
+				.returning("*");
+
+			user = result[0];
 		} catch (e) {
 			// duplicate username
 			if (e.code === "23505") {
