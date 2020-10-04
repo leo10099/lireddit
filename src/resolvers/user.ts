@@ -2,6 +2,7 @@ import { Resolver, Mutation, Ctx, Arg, InputType, Field, ObjectType, Query } fro
 import { User } from "../entities/User";
 import * as argon2 from "argon2";
 import { EntityManager } from "@mikro-orm/postgresql";
+import { COOKIE_NAME } from "../constants";
 
 // Typings
 import { AppContext } from "../typings";
@@ -112,5 +113,20 @@ export class UserResolver {
 		req.session.userId = user.id;
 
 		return { user };
+	}
+
+	@Mutation(() => Boolean)
+	logout(@Ctx() { req, res }: AppContext) {
+		new Promise(resolve =>
+			req.session.destroy(err => {
+				res.clearCookie(COOKIE_NAME);
+				if (err) {
+					console.log(err);
+					resolve(false);
+					return;
+				}
+				resolve(true);
+			}),
+		);
 	}
 }

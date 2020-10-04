@@ -18,7 +18,7 @@ import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 
 // Constants
-import { isProd } from "./constants";
+import { COOKIE_NAME, isProd } from "./constants";
 
 const bootstrap = async () => {
 	const orm = await MikroORM.init(microConfig);
@@ -39,7 +39,7 @@ const bootstrap = async () => {
 				secure: isProd,
 				sameSite: "lax",
 			},
-			name: "qid",
+			name: COOKIE_NAME,
 			store: new RedisStore({
 				client: redisClient,
 				disableTouch: true,
